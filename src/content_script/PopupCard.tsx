@@ -260,7 +260,6 @@ const useStyles = createUseStyles({
         flexDirection: 'row',
         alignItems: 'center',
         gap: '12px',
-        marginTop: '10px',
     },
     'actionButton': (props: IThemedStyleProps) => ({
         color: props.theme.colors.contentSecondary,
@@ -1210,82 +1209,95 @@ export function PopupCard(props: IPopupCardProps) {
                                             )}
                                         </Dropzone>
                                         <div className={styles.actionButtonsContainer}>
-                                            <div style={{ marginRight: 'auto' }} />
-                                            <StatefulTooltip
-                                                content={t('Upload an image for OCR translation')}
-                                                showArrow
-                                                placement='left'
-                                            >
-                                                <div className={styles.actionButton}>
-                                                    <Dropzone onDrop={onDrop}>
-                                                        {({ getRootProps, getInputProps }) => (
-                                                            <div {...getRootProps()} className={styles.actionButton}>
-                                                                <input {...getInputProps({ multiple: false })} />
-                                                                <BsTextareaT size={13} />
-                                                            </div>
-                                                        )}
-                                                    </Dropzone>
-                                                </div>
-                                            </StatefulTooltip>
-                                            <StatefulTooltip content={t('Speak')} showArrow placement='left'>
-                                                <div
-                                                    className={styles.actionButton}
-                                                    onClick={() => {
-                                                        if (isSpeakingEditableText) {
-                                                            speechSynthesis.cancel()
-                                                            setIsSpeakingEditableText(false)
-                                                            return
-                                                        }
-                                                        setIsSpeakingEditableText(true)
-                                                        speak({
-                                                            text: editableText,
-                                                            lang: detectFrom,
-                                                            onFinish: handleSpeakDone,
-                                                        })
-                                                    }}
-                                                >
-                                                    {isSpeakingEditableText ? (
-                                                        <SpeakerMotion />
-                                                    ) : (
-                                                        <RxSpeakerLoud size={13} />
-                                                    )}
-                                                </div>
-                                            </StatefulTooltip>
-                                            <StatefulTooltip
-                                                content={t('Copy to clipboard')}
-                                                showArrow
-                                                placement='left'
-                                            >
-                                                <div>
-                                                    <CopyToClipboard
-                                                        text={editableText}
-                                                        onCopy={() => {
-                                                            toast(t('Copy to clipboard'), {
-                                                                duration: 3000,
-                                                                icon: '👏',
-                                                            })
-                                                        }}
-                                                        options={{ format: 'text/plain' }}
-                                                    >
-                                                        <div className={styles.actionButton}>
-                                                            <RxCopy size={13} />
-                                                        </div>
-                                                    </CopyToClipboard>
-                                                </div>
-                                            </StatefulTooltip>
-                                            <StatefulTooltip content={t('Clear input')} showArrow placement='left'>
-                                                <div
-                                                    className={styles.actionButton}
-                                                    onClick={() => {
-                                                        setEditableText('')
-                                                        editorRef.current?.focus()
-                                                    }}
+                                            <>
+                                                <StatefulTooltip
+                                                    content={t('Upload an image for OCR translation')}
+                                                    showArrow
+                                                    placement='left'
                                                 >
                                                     <div className={styles.actionButton}>
-                                                        <RxEraser size={13} />
+                                                        <Dropzone onDrop={onDrop}>
+                                                            {({ getRootProps, getInputProps }) => (
+                                                                <div
+                                                                    {...getRootProps()}
+                                                                    className={styles.actionButton}
+                                                                >
+                                                                    <input {...getInputProps({ multiple: false })} />
+                                                                    <BsTextareaT size={13} />
+                                                                </div>
+                                                            )}
+                                                        </Dropzone>
                                                     </div>
-                                                </div>
-                                            </StatefulTooltip>
+                                                </StatefulTooltip>
+                                            </>
+                                            <div style={{ marginLeft: 'auto' }}></div>
+                                            {!!editableText.length && (
+                                                <>
+                                                    <StatefulTooltip content={t('Speak')} showArrow placement='left'>
+                                                        <div
+                                                            className={styles.actionButton}
+                                                            onClick={() => {
+                                                                if (isSpeakingEditableText) {
+                                                                    speechSynthesis.cancel()
+                                                                    setIsSpeakingEditableText(false)
+                                                                    return
+                                                                }
+                                                                setIsSpeakingEditableText(true)
+                                                                speak({
+                                                                    text: editableText,
+                                                                    lang: detectFrom,
+                                                                    onFinish: handleSpeakDone,
+                                                                })
+                                                            }}
+                                                        >
+                                                            {isSpeakingEditableText ? (
+                                                                <SpeakerMotion />
+                                                            ) : (
+                                                                <RxSpeakerLoud size={13} />
+                                                            )}
+                                                        </div>
+                                                    </StatefulTooltip>
+                                                    <StatefulTooltip
+                                                        content={t('Copy to clipboard')}
+                                                        showArrow
+                                                        placement='left'
+                                                    >
+                                                        <div>
+                                                            <CopyToClipboard
+                                                                text={editableText}
+                                                                onCopy={() => {
+                                                                    toast(t('Copy to clipboard'), {
+                                                                        duration: 3000,
+                                                                        icon: '👏',
+                                                                    })
+                                                                }}
+                                                                options={{ format: 'text/plain' }}
+                                                            >
+                                                                <div className={styles.actionButton}>
+                                                                    <RxCopy size={13} />
+                                                                </div>
+                                                            </CopyToClipboard>
+                                                        </div>
+                                                    </StatefulTooltip>
+                                                    <StatefulTooltip
+                                                        content={t('Clear input')}
+                                                        showArrow
+                                                        placement='left'
+                                                    >
+                                                        <div
+                                                            className={styles.actionButton}
+                                                            onClick={() => {
+                                                                setEditableText('')
+                                                                editorRef.current?.focus()
+                                                            }}
+                                                        >
+                                                            <div className={styles.actionButton}>
+                                                                <RxEraser size={13} />
+                                                            </div>
+                                                        </div>
+                                                    </StatefulTooltip>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     {originalText !== '' && (
