@@ -7,17 +7,17 @@ import { BaseProvider, Theme } from 'baseui-sd'
 import { Textarea } from 'baseui-sd/textarea'
 import icon from './assets/images/icon.png'
 import { createUseStyles } from 'react-jss'
-import { AiOutlineTranslation } from 'react-icons/ai'
+import { AiOutlineTranslation, AiOutlineFileSync } from 'react-icons/ai'
 import { IoSettingsOutline, IoColorPaletteOutline } from 'react-icons/io5'
-import { TbArrowsExchange } from 'react-icons/tb'
-import { MdOutlineSummarize, MdOutlineAnalytics, MdCode } from 'react-icons/md'
+import { TbArrowsExchange, TbCsv } from 'react-icons/tb'
+import { MdOutlineSummarize, MdOutlineAnalytics, MdCode, MdOutlineGrade, MdGrade } from 'react-icons/md'
 import { StatefulTooltip } from 'baseui-sd/tooltip'
 import { detectLang, supportLanguages } from './lang'
 import { translate, TranslateMode } from './translate'
 import { Select, Value, Option } from 'baseui-sd/select'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { RxCopy, RxEraser, RxReload, RxSpeakerLoud } from 'react-icons/rx'
-import { calculateMaxXY, queryPopupCardElement } from './utils'
+import { calculateMaxXY, exportToCsv, LocalDB, queryPopupCardElement, VocabularyItem } from './utils'
 import { clsx } from 'clsx'
 import { Button } from 'baseui-sd/button'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -28,6 +28,7 @@ import { documentPadding } from './consts'
 import Dropzone from 'react-dropzone'
 import { RecognizeResult, createWorker } from 'tesseract.js'
 import { BsTextareaT } from 'react-icons/bs'
+import { FcIdea } from 'react-icons/fc'
 import rocket from './assets/images/rocket.gif'
 import partyPopper from './assets/images/party-popper.gif'
 import { Event } from '@tauri-apps/api/event'
@@ -38,6 +39,7 @@ import LRUCache from 'lru-cache'
 import { ISettings, IThemedStyleProps } from '../common/types'
 import { useTheme } from '../common/hooks/useTheme'
 import { speak } from '../common/tts'
+import Vocabulary from './vocalulary'
 
 const cache = new LRUCache({
     max: 500,
@@ -311,6 +313,18 @@ const useStyles = createUseStyles({
     'OCRStatusBar': (props: IThemedStyleProps) => ({
         color: props.theme.colors.contentSecondary,
     }),
+    'vocabulary': {
+        position: 'fixed',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        top: 0,
+        left: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.3)',
+    },
 })
 
 interface IActionStrItem {
@@ -367,7 +381,7 @@ export function PopupCard(props: IPopupCardProps) {
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const isCompositing = useRef(false)
     const [selectedWord, setSelectedWord] = useState('')
-
+    const [showVocabulary, setShowVocabulary] = useState<boolean>(true)
     const highlightRef = useRef<HighlightInTextarea | null>(null)
 
     const { t, i18n } = useTranslation()
@@ -469,6 +483,29 @@ export function PopupCard(props: IPopupCardProps) {
     const [originalText, setOriginalText] = useState(props.text)
     const [translatedText, setTranslatedText] = useState('')
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
+    const [wordMode, setWordMode] = useState<boolean>(false)
+    const [collectd, setColleced] = useState<boolean>(false)
+    const checkCollection = useCallback(async () => {
+        try {
+            const arr = await LocalDB.vocabulary.where('word').equals(editableText).toArray()
+            if (arr.length > 0) {
+                await LocalDB.vocabulary.put({
+                    ...arr[0],
+                    count: arr[0].count + 1,
+                })
+                setColleced(true)
+            } else {
+                setColleced(false)
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }, [editableText])
+    useEffect(() => {
+        if (wordMode && !isLoading) {
+            checkCollection()
+        }
+    }, [wordMode, editableText, isLoading])
     useEffect(() => {
         setTranslatedLines(translatedText.split('\n'))
     }, [translatedText])
@@ -721,6 +758,7 @@ export function PopupCard(props: IPopupCardProps) {
                         if (message.role) {
                             return
                         }
+                        setWordMode(message.wordMode)
                         setTranslatedText((translatedText) => {
                             return translatedText + message.content
                         })
@@ -897,6 +935,42 @@ export function PopupCard(props: IPopupCardProps) {
         setIsOCRProcessing(false)
 
         await (await worker).terminate()
+    }
+
+    const onWordCollection = async () => {
+        try {
+            if (collectd) {
+                const wordInfo = await LocalDB.vocabulary.get(editableText)
+                await LocalDB.vocabulary.delete(wordInfo?.word ?? '')
+                setColleced(false)
+            } else {
+                await LocalDB.vocabulary.put({
+                    word: editableText,
+                    count: 1,
+                    description: translatedText.substr(editableText.length + 1), // seperate string after first '\n'
+                    updateAt: new Date().valueOf().toString(),
+                })
+                setColleced(true)
+            }
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    const onCsvExport = async () => {
+        try {
+            const arr = await LocalDB.vocabulary.toArray()
+            console.log('arr==', arr)
+            await exportToCsv<VocabularyItem>(`openai-translator-collection-${new Date().valueOf()}`, arr)
+            if (isDesktopApp()) {
+                toast(t('csv saved to desktop'), {
+                    duration: 3000,
+                    icon: '👏',
+                })
+            }
+        } catch (e) {
+            console.error(e)
+        }
     }
 
     return (
@@ -1229,6 +1303,42 @@ export function PopupCard(props: IPopupCardProps) {
                                                         </Dropzone>
                                                     </div>
                                                 </StatefulTooltip>
+                                                <StatefulTooltip
+                                                    content={t('Upload an image for OCR translation')}
+                                                    showArrow
+                                                    placement='left'
+                                                >
+                                                    <div className={styles.actionButton}>
+                                                        <AiOutlineFileSync size={13} />
+                                                    </div>
+                                                </StatefulTooltip>
+                                                <StatefulTooltip
+                                                    content={t('Upload an image for OCR translation')}
+                                                    showArrow
+                                                    placement='left'
+                                                >
+                                                    <div className={styles.actionButton}>
+                                                        <MdGrade size={13} onClick={() => setShowVocabulary(true)} />
+                                                    </div>
+                                                </StatefulTooltip>
+                                                <StatefulTooltip
+                                                    content={t('Upload an image for OCR translation')}
+                                                    showArrow
+                                                    placement='left'
+                                                >
+                                                    <div className={styles.actionButton} onClick={onCsvExport}>
+                                                        <TbCsv size={13} />
+                                                    </div>
+                                                </StatefulTooltip>
+                                                <StatefulTooltip
+                                                    content={t('Upload an image for OCR translation')}
+                                                    showArrow
+                                                    placement='left'
+                                                >
+                                                    <div className={styles.actionButton}>
+                                                        <FcIdea size={13} />
+                                                    </div>
+                                                </StatefulTooltip>
                                             </>
                                             <div style={{ marginLeft: 'auto' }}></div>
                                             {!!editableText.length && (
@@ -1325,7 +1435,7 @@ export function PopupCard(props: IPopupCardProps) {
                                             {errorMessage ? (
                                                 <div className={styles.errorMessage}>
                                                     <span>{errorMessage}</span>
-                                                    <StatefulTooltip content={t('Retry')} showArrow placement='left'>
+                                                    <StatefulTooltip content={t('Retry')} showArrow placement='right'>
                                                         <div
                                                             onClick={() => forceTranslate()}
                                                             className={styles.actionButton}
@@ -1348,7 +1458,41 @@ export function PopupCard(props: IPopupCardProps) {
                                                             {translatedLines.map((line, i) => {
                                                                 return (
                                                                     <p className={styles.paragraph} key={`p-${i}`}>
-                                                                        {line}
+                                                                        {wordMode && i == 0 ? (
+                                                                            <div
+                                                                                style={{
+                                                                                    display: 'flex',
+                                                                                    alignItems: 'center',
+                                                                                    gap: '5px',
+                                                                                }}
+                                                                            >
+                                                                                {line}
+                                                                                {!isLoading && (
+                                                                                    <StatefulTooltip
+                                                                                        content={t('Copy to clipboard')}
+                                                                                        showArrow
+                                                                                        placement='right'
+                                                                                    >
+                                                                                        <div
+                                                                                            className={
+                                                                                                styles.actionButton
+                                                                                            }
+                                                                                            onClick={onWordCollection}
+                                                                                        >
+                                                                                            {collectd ? (
+                                                                                                <MdGrade size={15} />
+                                                                                            ) : (
+                                                                                                <MdOutlineGrade
+                                                                                                    size={15}
+                                                                                                />
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </StatefulTooltip>
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            line
+                                                                        )}
                                                                         {isLoading &&
                                                                             i === translatedLines.length - 1 && (
                                                                                 <span className={styles.caret} />
@@ -1438,6 +1582,11 @@ export function PopupCard(props: IPopupCardProps) {
                                         )}
                                     </div>
                                 </StatefulTooltip>
+                            </div>
+                        )}
+                        {showVocabulary && (
+                            <div className={styles.vocabulary} onClick={() => setShowVocabulary(false)}>
+                                <Vocabulary onCancel={() => setShowVocabulary(false)} type='essay' engine={props.engine}/>
                             </div>
                         )}
                         <Toaster />
