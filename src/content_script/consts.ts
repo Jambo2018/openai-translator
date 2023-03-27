@@ -5,4 +5,3 @@ export const containerID = '__yetone-openai-translator'
 export const popupCardMinWidth = 200
 export const popupCardMaxWidth = 600
 export const documentPadding = 10
-export const EssayMap = ['essay-story', 'essay-news', 'essay-sport', 'essay-thesis', 'essay-drama']

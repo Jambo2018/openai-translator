@@ -187,9 +187,8 @@ export function formatDate(dateNum: number, format: string) {
 
 // js to csv
 export async function exportToCsv<T extends Record<string, string | number>>(filename: string, rows: T[]) {
-    rows.push({ word: '21', description: 'sdfsdf', count: 23, updateAt: '1112312312312312' })
     if (!rows.length) return
-    filename += 'csv'
+    filename += '.csv'
     const columns = Object.keys(rows[0])
     let csvFile = ''
     for (const key of columns) {

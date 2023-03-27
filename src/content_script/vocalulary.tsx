@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next'
 import { FaDice } from 'react-icons/fa'
 import { AiOutlineCloseCircle } from 'react-icons/ai'
 import { Select, Value, Option } from 'baseui-sd/select'
-import { EssayMap } from './consts'
 import { FcIdea } from 'react-icons/fc'
 import { toast } from 'react-hot-toast'
 import { translate } from './translate'
@@ -22,10 +21,7 @@ import CopyToClipboard from 'react-copy-to-clipboard'
 import { RxCopy } from 'react-icons/rx'
 const RANDOM_SIZE = 10
 const MAX_WORDS = 50
-const EssayOptions = EssayMap.map((item) => ({
-    id: item,
-    label: item,
-}))
+
 const useStyles = createUseStyles({
     container: (props: IThemedStyleProps) => ({
         position: 'relative',
@@ -79,7 +75,7 @@ const useStyles = createUseStyles({
         fontSize: '10px',
         borderRadius: '4px',
         padding: '0 12px',
-        background: props.theme.colors.backgroundTertiary,
+        background: '#FFF',
     }),
     diceIcon: {
         'cursor': 'pointer',
@@ -142,8 +138,57 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
     const [selectWord, setWord] = useState<VocabularyItem>()
     const [collectd, setColleced] = useState<boolean>(false)
     const { t, i18n } = useTranslation()
-    const [essayType, setEssayType] = useState<string>()
-    const [errorMessage, setErrorMessage] = useState('')
+    const controlRef = useRef(new AbortController())
+    // const EssayOptions = [
+    //     {
+    //         prompt: 'an insteresting story',
+    //         label: t('An insteresting story'),
+    //     },
+    //     {
+    //         prompt: 'a political newsletter',
+    //         label: t('A political newsletter'),
+    //     },
+    //     {
+    //         prompt: 'a sports bulletin',
+    //         label: t('A sports bulletin'),
+    //     },
+    //     {
+    //         prompt: 'a catchy lyric',
+    //         label: t('A catchy lyric'),
+    //     },
+    //     {
+    //         prompt: 'a smooth poem',
+    //         label: t('A smooth poem'),
+    //     },
+    // ]
+    const EssayOptions = [
+        {
+            id: 'story',
+            prompt: 'an insteresting story',
+            label: t('An insteresting story'),
+        },
+        {
+            id: 'newsletter',
+            prompt: 'a political newsletter',
+            label: t('A political newsletter'),
+        },
+        {
+            id: 'sports',
+            prompt: 'a sports bulletin',
+            label: t('A sports bulletin'),
+        },
+        {
+            id: 'lyric',
+            prompt: 'a catchy lyric',
+            label: t('A catchy lyric'),
+        },
+        {
+            id: 'poem',
+            prompt: 'a smooth poem',
+            label: t('A smooth poem'),
+        },
+    ]
+    const [essayType, setEssayType] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [essay, setEssay] = useState<string>('')
     const EssayTxt = useRef<string>('')
@@ -226,9 +271,12 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
             toast('未选中')
             return
         }
+        setEssay('')
+        const prompt = EssayOptions.find((item) => item.id == essayType)?.prompt
         setIsLoading(true)
-        const controller = new AbortController()
-        const { signal } = controller
+        controlRef.current.abort()
+        controlRef.current = new AbortController()
+        const { signal } = controlRef.current
         const frequentWords = await LocalDB.vocabulary.orderBy('count').desc().limit(MAX_WORDS).toArray()
         const frequentWordsArr = frequentWords.map((item: VocabularyItem) => item.word)
         EssayUsedWord.current = [...frequentWordsArr]
@@ -242,6 +290,7 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                 selectedWord: '',
                 detectFrom: '',
                 detectTo: '',
+                essayPrompt: prompt,
                 onMessage: (message) => {
                     if (message.role) {
                         return
@@ -261,20 +310,22 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                 },
                 onError: (error) => {
                     setIsLoading(false)
-                    setErrorMessage(error)
+                    toast(error, {
+                        duration: 3000,
+                        icon: '😰',
+                    })
                 },
             })
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             setIsLoading(false)
-            setErrorMessage((error as Error).toString())
         } finally {
             setIsLoading(false)
         }
     }
 
     const DangerEssay = useMemo(
-        () => (essay ? '<div>' + essay.replace('\n', '<br/>').replace('\r', '<br/>') + '</div>' : ''),
+        () => (essay ? '<div>' + essay.replace(/\n/g, '<br/>').replace(/\r/g, '<br//>') + '</div>' : ''),
         [essay]
     )
     return (
@@ -288,11 +339,9 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                             e.preventDefault()
                         }}
                     >
-                        <StatefulTooltip content={t('Copy to clipboard')} showArrow placement='left'>
-                            <div className={styles.closeBtn} onClick={props.onCancel}>
-                                <AiOutlineCloseCircle fontSize={13} />
-                            </div>
-                        </StatefulTooltip>
+                        <div className={styles.closeBtn} onClick={props.onCancel}>
+                            <AiOutlineCloseCircle fontSize={13} />
+                        </div>
                         <div className={styles.list}>
                             {props.type == 'vocabulary' && (
                                 <>
@@ -316,10 +365,12 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                         options={EssayOptions}
                                         value={[{ id: essayType }]}
                                         onChange={({ value }) => {
+                                            controlRef.current.abort()
+                                            setEssay('')
                                             setEssayType(value[0].id ?? '')
                                         }}
                                     />
-                                    <StatefulTooltip content='Exchange' placement='bottom' showArrow>
+                                    <StatefulTooltip content='Big Bang' placement='bottom' showArrow>
                                         <div className={styles.actionButton} onClick={onGenerageEssay}>
                                             <Button size='mini' kind={'secondary'}>
                                                 <FcIdea size={20} />
@@ -329,26 +380,20 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                 </div>
                             )}
                             {props.type == 'vocabulary' && (
-                                <StatefulTooltip content='Exchange' placement='bottom' showArrow>
+                                <StatefulTooltip content={t('Random Change')} placement='bottom' showArrow>
                                     <div className={styles.diceArea}>
                                         <FaDice fontSize={20} className={styles.diceIcon} onClick={onRandomList} />
                                     </div>
                                 </StatefulTooltip>
                             )}
-                            {props.type == 'essay' && (isLoading || errorMessage) && (
-                                <div
-                                    className={clsx({
-                                        [styles.actionStr]: true,
-                                        [styles.error]: !!errorMessage,
-                                    })}
-                                >
+                            {props.type == 'essay' && isLoading && (
+                                <div className={styles.actionStr}>
                                     {isLoading && (
                                         <>
-                                            <div>is writting</div>
+                                            <div>{t('is writing')}</div>
                                             <span className={styles.writing} key={'1'} />
                                         </>
                                     )}
-                                    {errorMessage && <>{errorMessage}</>}
                                 </div>
                             )}
                         </div>
@@ -363,7 +408,11 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                         }}
                                     >
                                         {selectWord.word}
-                                        <StatefulTooltip content={t('Copy to clipboard')} showArrow placement='right'>
+                                        <StatefulTooltip
+                                            content={collectd ? t('Remove from collection') : t('Add to collection')}
+                                            showArrow
+                                            placement='right'
+                                        >
                                             <div className={styles.actionButton} onClick={onWordCollection}>
                                                 {collectd ? <MdGrade size={15} /> : <MdOutlineGrade size={15} />}
                                             </div>
