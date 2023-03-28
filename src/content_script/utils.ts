@@ -158,8 +158,8 @@ export class MySubClassedDexie extends Dexie {
     vocabulary!: Table<VocabularyItem>
 
     constructor() {
-        super('collection1')
-        this.version(2).stores({
+        super('collection')
+        this.version(1).stores({
             vocabulary: 'word,count, description , updateAt',
         })
     }
