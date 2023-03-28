@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useTranslation ,Trans} from 'react-i18next'
 import toast, { Toaster } from 'react-hot-toast'
 import { Client as Styletron } from 'styletron-engine-atomic'
 import { Provider as StyletronProvider } from 'styletron-react'
@@ -485,7 +485,7 @@ export function PopupCard(props: IPopupCardProps) {
     const [translatedLines, setTranslatedLines] = useState<string[]>([])
     const [wordMode, setWordMode] = useState<boolean>(false)
     const [collectd, setColleced] = useState<boolean>(false)
-    const [collectTotal, updateTotal] = useState<number>()
+    const [collectTotal, updateTotal] = useState<number>(0)
     const checkCollection = useCallback(async () => {
         try {
             const arr = await LocalDB.vocabulary.where('word').equals(editableText).toArray()
@@ -954,6 +954,7 @@ export function PopupCard(props: IPopupCardProps) {
                 const wordInfo = await LocalDB.vocabulary.get(editableText)
                 await LocalDB.vocabulary.delete(wordInfo?.word ?? '')
                 setColleced(false)
+                updateTotal((t) => t - 1)
             } else {
                 await LocalDB.vocabulary.put({
                     word: editableText,
@@ -962,6 +963,7 @@ export function PopupCard(props: IPopupCardProps) {
                     updateAt: new Date().valueOf().toString(),
                 })
                 setColleced(true)
+                updateTotal((t) => t + 1)
             }
         } catch (e) {
             console.error(e)
@@ -1316,7 +1318,14 @@ export function PopupCard(props: IPopupCardProps) {
                                                 </StatefulTooltip>
                                                 {!!collectTotal && (
                                                     <StatefulTooltip
-                                                        content={collectTotal + ' ' + t('words are collected')}
+                                                        content={
+                                                            <Trans
+                                                                i18nKey='words are collected'
+                                                                values={{
+                                                                    collectTotal,
+                                                                }}
+                                                            />
+                                                        }
                                                         showArrow
                                                         placement='top'
                                                     >
