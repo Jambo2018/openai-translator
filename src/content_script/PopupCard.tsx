@@ -381,7 +381,7 @@ export function PopupCard(props: IPopupCardProps) {
     const editorRef = useRef<HTMLTextAreaElement>(null)
     const isCompositing = useRef(false)
     const [selectedWord, setSelectedWord] = useState('')
-    const [vocabularyType, setVocabularyType] = useState<'hide' | 'vocabulary' | 'essay'>('hide')
+    const [vocabularyType, setVocabularyType] = useState<'hide' | 'vocabulary' | 'article'>('hide')
     const highlightRef = useRef<HighlightInTextarea | null>(null)
     const [showMoreBtn, setShowMore] = useState<boolean>(false)
     const { t, i18n } = useTranslation()
@@ -1364,7 +1364,7 @@ export function PopupCard(props: IPopupCardProps) {
                                                             <div className={styles.actionButton}>
                                                                 <FcIdea
                                                                     size={13}
-                                                                    onClick={() => setVocabularyType('essay')}
+                                                                    onClick={() => setVocabularyType('article')}
                                                                 />
                                                             </div>
                                                         </StatefulTooltip>

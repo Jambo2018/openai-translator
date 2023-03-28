@@ -23,7 +23,7 @@ const RANDOM_SIZE = 10
 const MAX_WORDS = 50
 
 const useStyles = createUseStyles({
-    container: (props: IThemedStyleProps) => ({
+    'container': (props: IThemedStyleProps) => ({
         position: 'relative',
         width: '360px',
         height: '480px',
@@ -34,7 +34,7 @@ const useStyles = createUseStyles({
         display: 'flex',
         flexDirection: 'column',
     }),
-    closeBtn: {
+    'closeBtn': {
         'position': 'absolute',
         'right': '8px',
         'top': '8px',
@@ -44,7 +44,7 @@ const useStyles = createUseStyles({
             opacity: 0.6,
         },
     },
-    list: {
+    'list': {
         position: 'relative',
         display: 'flex',
         gap: '6px',
@@ -52,14 +52,14 @@ const useStyles = createUseStyles({
         padding: '16px 0',
         borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
     },
-    display: {
+    'display': {
         display: 'flex',
         padding: '16px 10px 10px',
         flexDirection: 'column',
         overflowY: 'auto',
         overflowX: 'hidden',
     },
-    essayDisplay: {
+    'articleDisplay': {
         marginTop: '16px',
         display: 'flex',
         padding: '0 10px 10px',
@@ -67,7 +67,7 @@ const useStyles = createUseStyles({
         overflowY: 'auto',
         overflowX: 'hidden',
     },
-    diceArea: (props: IThemedStyleProps) => ({
+    'diceArea': (props: IThemedStyleProps) => ({
         position: 'absolute',
         bottom: 0,
         left: '50%',
@@ -77,27 +77,27 @@ const useStyles = createUseStyles({
         padding: '0 12px',
         background: '#FFF',
     }),
-    diceIcon: {
+    'diceIcon': {
         'cursor': 'pointer',
         '&:active': {
             opacity: 0.6,
         },
     },
-    actionButton: (props: IThemedStyleProps) => ({
+    'actionButton': (props: IThemedStyleProps) => ({
         color: props.theme.colors.contentSecondary,
         cursor: 'pointer',
         display: 'flex',
         paddingTop: '6px',
         paddingBottom: '6px',
     }),
-    select: {
+    'select': {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
         gap: '8px',
     },
-    actionStr: (props: IThemedStyleProps) => ({
+    'actionStr': (props: IThemedStyleProps) => ({
         position: 'absolute',
         display: 'flex',
         flexDirection: 'row',
@@ -112,10 +112,10 @@ const useStyles = createUseStyles({
         background: props.theme.colors.backgroundTertiary,
         color: props.theme.colors.contentSecondary,
     }),
-    error: {
+    'error': {
         background: '#f8d7da',
     },
-    writing: {
+    'writing': {
         'marginLeft': '3px',
         'width': '10px',
         '&::after': {
@@ -123,11 +123,17 @@ const useStyles = createUseStyles({
             animation: '$writing 1.3s infinite',
         },
     },
+    '@keyframes writing': {
+        '50%': {
+            marginLeft: '-3px',
+            marginBottom: '-3px',
+        },
+    },
 })
 
 interface VocabularyProps {
     engine: Styletron
-    type: 'vocabulary' | 'essay'
+    type: 'vocabulary' | 'article'
     onCancel: () => void
 }
 const Vocabulary: FC<VocabularyProps> = (props) => {
@@ -137,31 +143,9 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
     const [list, setList] = useState<VocabularyItem[]>([])
     const [selectWord, setWord] = useState<VocabularyItem>()
     const [collectd, setColleced] = useState<boolean>(false)
-    const { t, i18n } = useTranslation()
+    const { t } = useTranslation()
     const controlRef = useRef(new AbortController())
-    // const EssayOptions = [
-    //     {
-    //         prompt: 'an insteresting story',
-    //         label: t('An insteresting story'),
-    //     },
-    //     {
-    //         prompt: 'a political newsletter',
-    //         label: t('A political newsletter'),
-    //     },
-    //     {
-    //         prompt: 'a sports bulletin',
-    //         label: t('A sports bulletin'),
-    //     },
-    //     {
-    //         prompt: 'a catchy lyric',
-    //         label: t('A catchy lyric'),
-    //     },
-    //     {
-    //         prompt: 'a smooth poem',
-    //         label: t('A smooth poem'),
-    //     },
-    // ]
-    const EssayOptions = [
+    const ArticleOptions = [
         {
             id: 'story',
             prompt: 'an insteresting story',
@@ -188,12 +172,12 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
             label: t('A smooth poem'),
         },
     ]
-    const [essayType, setEssayType] = useState<string>('')
+    const [articleType, setArticleType] = useState<string>('')
     const [isLoading, setIsLoading] = useState<boolean>(false)
-    const [essay, setEssay] = useState<string>('')
-    const EssayTxt = useRef<string>('')
+    const [article, setArticle] = useState<string>('')
+    const ArticleTxt = useRef<string>('')
     const descriptionLines = useMemo(() => selectWord?.description.split('\n') ?? [], [selectWord?.description])
-    const EssayUsedWord = useRef<string[]>()
+    const ArticleUsedWord = useRef<string[]>()
     useEffect(() => {
         onRandomList()
     }, [])
@@ -266,21 +250,21 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
         }
     }
 
-    const onGenerageEssay = async () => {
-        if (!essayType) {
+    const onGenerageArticle = async () => {
+        if (!articleType) {
             toast('未选中')
             return
         }
-        setEssay('')
-        const prompt = EssayOptions.find((item) => item.id == essayType)?.prompt
+        setArticle('')
+        const prompt = ArticleOptions.find((item) => item.id == articleType)?.prompt
         setIsLoading(true)
         controlRef.current.abort()
         controlRef.current = new AbortController()
         const { signal } = controlRef.current
         const frequentWords = await LocalDB.vocabulary.orderBy('count').desc().limit(MAX_WORDS).toArray()
         const frequentWordsArr = frequentWords.map((item: VocabularyItem) => item.word)
-        EssayUsedWord.current = [...frequentWordsArr]
-        EssayTxt.current = ''
+        ArticleUsedWord.current = [...frequentWordsArr]
+        ArticleTxt.current = ''
         const str = frequentWordsArr.join(',')
         try {
             await translate({
@@ -290,15 +274,15 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                 selectedWord: '',
                 detectFrom: '',
                 detectTo: '',
-                essayPrompt: prompt,
+                articlePrompt: prompt,
                 onMessage: (message) => {
                     if (message.role) {
                         return
                     }
-                    setEssay((e) => {
-                        console.log('include===', EssayUsedWord.current, message.content)
-                        EssayTxt.current += message.content
-                        if (EssayUsedWord.current?.includes(message.content.trim())) {
+                    setArticle((e) => {
+                        console.log('include===', ArticleUsedWord.current, message.content)
+                        ArticleTxt.current += message.content
+                        if (ArticleUsedWord.current?.includes(message.content.trim())) {
                             return e + `<b style=color:#f40>${message.content}</b>`
                         } else {
                             return e + message.content
@@ -324,9 +308,9 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
         }
     }
 
-    const DangerEssay = useMemo(
-        () => (essay ? '<div>' + essay.replace(/\n/g, '<br/>').replace(/\r/g, '<br//>') + '</div>' : ''),
-        [essay]
+    const DangerArticle = useMemo(
+        () => (article ? '<div>' + article.replace(/\n/g, '<br/>').replace(/\r/g, '<br//>') + '</div>' : ''),
+        [article]
     )
     return (
         <>
@@ -357,21 +341,21 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                     ))}
                                 </>
                             )}
-                            {props.type == 'essay' && (
+                            {props.type == 'article' && (
                                 <div className={styles.select}>
                                     <Select
                                         size='mini'
                                         clearable={false}
-                                        options={EssayOptions}
-                                        value={[{ id: essayType }]}
+                                        options={ArticleOptions}
+                                        value={[{ id: articleType }]}
                                         onChange={({ value }) => {
                                             controlRef.current.abort()
-                                            setEssay('')
-                                            setEssayType(value[0].id ?? '')
+                                            setArticle('')
+                                            setArticleType(value[0].id ?? '')
                                         }}
                                     />
                                     <StatefulTooltip content='Big Bang' placement='bottom' showArrow>
-                                        <div className={styles.actionButton} onClick={onGenerageEssay}>
+                                        <div className={styles.actionButton} onClick={onGenerageArticle}>
                                             <Button size='mini' kind={'secondary'}>
                                                 <FcIdea size={20} />
                                             </Button>
@@ -386,7 +370,7 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                     </div>
                                 </StatefulTooltip>
                             )}
-                            {props.type == 'essay' && isLoading && (
+                            {props.type == 'article' && isLoading && (
                                 <div className={styles.actionStr}>
                                     {isLoading && (
                                         <>
@@ -427,17 +411,17 @@ const Vocabulary: FC<VocabularyProps> = (props) => {
                                 )}
                             </div>
                         )}
-                        {props.type == 'essay' && (
+                        {props.type == 'article' && (
                             <div
-                                className={`${styles.display} ${styles.essayDisplay}`}
-                                dangerouslySetInnerHTML={{ __html: DangerEssay }}
+                                className={`${styles.display} ${styles.articleDisplay}`}
+                                dangerouslySetInnerHTML={{ __html: DangerArticle }}
                             ></div>
                         )}
-                        {props.type == 'essay' && !isLoading && essay.length > 0 && (
+                        {props.type == 'article' && !isLoading && article.length > 0 && (
                             <StatefulTooltip content={t('Copy to clipboard')} showArrow placement='left'>
                                 <div style={{ marginLeft: 'auto', marginTop: '10px' }}>
                                     <CopyToClipboard
-                                        text={EssayTxt.current}
+                                        text={ArticleTxt.current}
                                         onCopy={() => {
                                             toast(t('Copy to clipboard'), {
                                                 duration: 3000,
